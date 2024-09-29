@@ -10,9 +10,10 @@ interface SortableTableProps<T> {
   customRenderers?: {
     [K in keyof T]?: (item: T) => React.ReactNode;
   };
+  actions?: (item: T) => React.ReactNode;
 }
 
-function SortableTable<T>({ data, columns, onSort, customRenderers }: SortableTableProps<T>) {
+function SortableTable<T>({ data, columns, onSort, customRenderers, actions }: SortableTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -42,6 +43,7 @@ function SortableTable<T>({ data, columns, onSort, customRenderers }: SortableTa
               )}
             </th>
           ))}
+          {actions && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
@@ -49,11 +51,16 @@ function SortableTable<T>({ data, columns, onSort, customRenderers }: SortableTa
           <tr key={index}>
             {columns.map((column) => (
               <td key={column.key as string} className="px-6 py-4 whitespace-nowrap">
-                {customRenderers && column.key in customRenderers && typeof customRenderers[column.key] === 'function'
+                {customRenderers && column.key in customRenderers
                   ? customRenderers[column.key]!(item)
                   : String(item[column.key])}
               </td>
             ))}
+            {actions && (
+              <td className="px-6 py-4 whitespace-nowrap">
+                {actions(item)}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ref, push, onValue, remove, update, set } from 'firebase/database';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword } from 'firebase/auth';
 import { db } from '../firebaseConfig';
 import { CSVLink } from 'react-csv';
 import { useForm } from '../hooks/useForm';
@@ -16,7 +16,7 @@ const TeacherManagement: React.FC = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const auth = getAuth();
-  const { currentUser, reauthenticate } = useAuth();
+  const { currentUser } = useAuth();
 
   const { formData, handleChange, errors, validateForm, resetForm } = useForm({
     name: { 
@@ -127,7 +127,7 @@ const TeacherManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, uid: string) => {
+  const handleDelete = async (id: string, uid: string, email: string) => {
     if (currentUser?.role !== ROLES.ADMIN) {
       toast.error('Only admins can delete teachers');
       return;
@@ -141,19 +141,39 @@ const TeacherManagement: React.FC = () => {
           return;
         }
 
-        await reauthenticate(adminPassword);
+        // Re-authenticate the admin
+        const adminAuth = getAuth();
+        await signInWithEmailAndPassword(adminAuth, currentUser.email, adminPassword);
+
+        // Try to delete the user from Authentication
+        try {
+          // Sign in as the user to be deleted
+          const userAuth = getAuth();
+          await signInWithEmailAndPassword(userAuth, email, "tempPassword"); // You need to know the user's password
+          const userToDelete = userAuth.currentUser;
+          if (userToDelete) {
+            await deleteUser(userToDelete);
+          }
+        } catch (error) {
+          console.error('Error deleting user from Authentication:', error);
+          toast.error('Failed to delete user from Authentication. The user may already be deleted.');
+          // Continue with deletion from database even if Authentication deletion fails
+        }
 
         // Delete teacher from the database
         const teacherRef = ref(db, `teachers/${id}`);
         await remove(teacherRef);
-  
+    
         // Delete user from users collection
         await remove(ref(db, `users/${uid}`));
-  
+    
         // Update local state to remove the deleted teacher
         setTeachers(prevTeachers => prevTeachers.filter(teacher => teacher.id !== id));
-  
+    
         toast.success('Teacher deleted successfully');
+
+        // Sign back in as admin
+        await signInWithEmailAndPassword(adminAuth, currentUser.email, adminPassword);
       } catch (error) {
         console.error('Error deleting teacher:', error);
         toast.error('Failed to delete teacher');
@@ -331,7 +351,7 @@ const TeacherManagement: React.FC = () => {
                 {currentUser?.role === ROLES.ADMIN && (
                   <td className="py-3 px-6 text-center">
                     <button
-                      onClick={() => handleDelete(teacher.id, teacher.uid)}
+                      onClick={() => handleDelete(teacher.id, teacher.uid, teacher.email)}
                       className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded focus:outline-none focus:shadow-outline"
                     >
                       Delete

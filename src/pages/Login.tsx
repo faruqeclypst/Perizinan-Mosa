@@ -1,30 +1,48 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      setError('');
-      setLoading(true);
       await login(email, password);
+      toast.success('Login successful!');
       navigate('/dashboard');
-    } catch (error) {
-      setError('Failed to log in. Please check your credentials.');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message === 'ACCOUNT_DELETED') {
+        toast.error('This account has been deleted. Please contact an administrator.');
+      } else if (error.code === 'auth/user-not-found') {
+        toast.error('No user found with this email. Please check your email or sign up.');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email address. Please enter a valid email.');
+      } else if (error.code === 'auth/user-disabled') {
+        toast.error('This account has been disabled. Please contact an administrator.');
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Too many failed login attempts. Please try again later.');
+      } else {
+        toast.error('An error occurred while logging in. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <ToastContainer position="top-center" autoClose={5000} />
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
       </div>
@@ -75,8 +93,6 @@ const Login: React.FC = () => {
                 </Link>
               </div>
             </div>
-
-            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <div>
               <button

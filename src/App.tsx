@@ -10,11 +10,14 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import DeputyDashboard from './pages/DeputyDashboard';
 import Dashboard from './pages/Dashboard';
 import { ROLES } from './utils/roles';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
+        <ToastContainer position="top-center" autoClose={5000} />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />

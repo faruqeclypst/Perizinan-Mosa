@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    // ... other options ...
+    "paths": {
+      "@heroicons/react/*": ["./node_modules/@heroicons/react/*"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
